@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Opportunity Intelligence — Marketing Copilot</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #080a0f;
+  --surface: #0f1218;
+  --surface2: #161b24;
+  --surface3: #1c2330;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --accent: #3b82f6;
+  --accent-glow: rgba(59,130,246,0.15);
+  --green: #10b981;
+  --green-glow: rgba(16,185,129,0.12);
+  --amber: #f59e0b;
+  --amber-glow: rgba(245,158,11,0.12);
+  --red: #ef4444;
+  --text: #e8edf5;
+  --text2: #8892a4;
+  --text3: #4a5568;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+.shell { display: flex; height: 100vh; overflow: hidden; }
+
+/* Sidebar */
+.sidebar { width: 220px; min-width: 220px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 0; }
+.logo-area { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.logo { display: flex; align-items: center; gap: 8px; }
+.logo img { width: 100%; max-width: 130px; height: auto; display: block; mix-blend-mode: screen; }
+.logo-pip { width: 6px; height: 6px; background: var(--green); border-radius: 50%; box-shadow: 0 0 6px var(--green); animation: blink 2.5s infinite; flex-shrink: 0; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.sub-logo { font-size: 10px; color: var(--text3); margin-top: 4px; font-family: var(--mono); display: flex; align-items: center; gap: 6px; }
+.sub-logo-pip { width: 5px; height: 5px; background: var(--green); border-radius: 50%; box-shadow: 0 0 5px var(--green); animation: blink 2.5s infinite; flex-shrink: 0; }
+
+.nav { padding: 12px 8px; flex: 1; }
+.nav-section-label { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text3); padding: 8px 8px 4px; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; color: var(--text2); transition: all 0.15s; margin-bottom: 1px; font-family: var(--sans); border: none; background: none; width: 100%; text-align: left; }
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: var(--accent-glow); color: var(--accent); border: 1px solid rgba(59,130,246,0.2); }
+.nav-badge { margin-left: auto; font-family: var(--mono); font-size: 10px; background: var(--accent); color: white; padding: 1px 6px; border-radius: 3px; }
+.nav-badge.new { background: var(--green); }
+
+/* Main */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--surface); flex-shrink: 0; }
+.topbar-title { font-size: 14px; font-weight: 500; }
+.topbar-status { font-size: 11px; color: var(--text3); font-family: var(--mono); background: var(--surface2); padding: 3px 8px; border-radius: 3px; border: 1px solid var(--border); }
+.topbar-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.btn { padding: 6px 14px; border-radius: 5px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border2); background: transparent; color: var(--text2); font-family: var(--sans); transition: all 0.15s; }
+.btn:hover { background: var(--surface2); color: var(--text); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+.btn-primary:hover { background: #2563eb; border-color: #2563eb; color: white; }
+.btn-scan { background: var(--green-glow); border-color: var(--green); color: var(--green); }
+.btn-scan:hover { background: rgba(16,185,129,0.2); color: var(--green); }
+
+.content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+/* Search config panel */
+.config-panel { margin: 16px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+.config-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.config-header-title { font-size: 12px; font-weight: 500; font-family: var(--mono); color: var(--text2); }
+.config-toggle { margin-left: auto; font-size: 11px; color: var(--text3); }
+.config-body { padding: 16px; display: none; gap: 16px; flex-wrap: wrap; }
+.config-body.open { display: flex; }
+.config-group { display: flex; flex-direction: column; gap: 6px; min-width: 180px; flex: 1; }
+.config-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); font-family: var(--mono); }
+.config-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag { padding: 3px 8px; border-radius: 3px; font-size: 11px; cursor: pointer; border: 1px solid var(--border2); color: var(--text2); transition: all 0.15s; font-family: var(--mono); background: transparent; }
+.tag:hover { border-color: var(--accent); color: var(--accent); }
+.tag.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+.tag.active.green { background: var(--green-glow); border-color: var(--green); color: var(--green); }
+.tag.active.amber { background: var(--amber-glow); border-color: var(--amber); color: var(--amber); }
+
+/* Results area */
+.results-area { flex: 1; padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+.results-header { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.results-count { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+.filter-row { display: flex; gap: 6px; margin-left: auto; }
+.filter-pill { padding: 3px 10px; border-radius: 20px; font-size: 11px; cursor: pointer; border: 1px solid var(--border); color: var(--text3); background: transparent; font-family: var(--sans); transition: all 0.15s; }
+.filter-pill:hover { border-color: var(--border2); color: var(--text2); }
+.filter-pill.active { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+/* Empty / loading state */
+.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text3); padding: 40px; text-align: center; position: relative; overflow: hidden; }
+.empty-state::before { content: ''; position: absolute; inset: 0; background: url('/aptiv-about-home-hero.tmb-hero-i-1.jpg') center/cover no-repeat; opacity: 0.07; filter: grayscale(40%); pointer-events: none; }
+.empty-state > * { position: relative; z-index: 1; }
+.empty-icon { font-size: 32px; opacity: 0.3; }
+.empty-title { font-size: 14px; color: var(--text2); }
+.empty-sub { font-size: 12px; max-width: 320px; line-height: 1.6; }
+
+/* Loading animation */
+.scan-state { flex: 1; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 40px; }
+.scan-state.active { display: flex; }
+.scan-ring { width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--border2); border-top-color: var(--accent); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.scan-log { font-family: var(--mono); font-size: 11px; color: var(--text3); text-align: center; max-width: 400px; line-height: 2; }
+.scan-log span { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Opportunity cards */
+.opp-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.15s; position: relative; overflow: hidden; }
+.opp-card:hover { border-color: var(--border2); background: var(--surface2); }
+.opp-card.selected { border-color: var(--accent); background: var(--accent-glow); }
+.opp-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--border2); }
+.opp-card.hot::before { background: var(--green); }
+.opp-card.warm::before { background: var(--amber); }
+.opp-card.watch::before { background: var(--text3); }
+.opp-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.opp-icon { width: 36px; height: 36px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.opp-title { font-size: 13px; font-weight: 500; line-height: 1.4; margin-bottom: 3px; }
+.opp-location { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+.opp-badges { display: flex; gap: 5px; margin-left: auto; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.badge { padding: 2px 7px; border-radius: 3px; font-size: 10px; font-family: var(--mono); font-weight: 500; }
+.badge-hot { background: var(--green-glow); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.badge-warm { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+.badge-watch { background: var(--surface3); color: var(--text3); border: 1px solid var(--border2); }
+.badge-type { background: rgba(59,130,246,0.1); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+.opp-meta { display: flex; gap: 14px; font-size: 11px; color: var(--text3); font-family: var(--mono); flex-wrap: wrap; }
+.opp-meta-item { display: flex; align-items: center; gap: 4px; }
+.opp-summary { font-size: 12px; color: var(--text2); line-height: 1.6; margin: 10px 0; border-top: 1px solid var(--border); padding-top: 10px; }
+.opp-actions { display: flex; gap: 8px; margin-top: 12px; }
+.opp-btn { padding: 5px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; border: 1px solid var(--border2); background: transparent; color: var(--text2); font-family: var(--sans); transition: all 0.15s; }
+.opp-btn:hover { background: var(--surface3); color: var(--text); }
+.opp-btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+.opp-btn-primary:hover { background: #2563eb; color: white; }
+
+/* Detail panel */
+.detail-panel { width: 380px; min-width: 380px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; transition: all 0.2s; overflow-y: auto; }
+.detail-panel.hidden { width: 0; min-width: 0; overflow: hidden; }
+.detail-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.detail-title { font-size: 13px; font-weight: 500; flex: 1; }
+.detail-close { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 18px; padding: 0 2px; }
+.detail-close:hover { color: var(--text); }
+.detail-body { padding: 16px; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.detail-section { }
+.detail-section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); font-family: var(--mono); margin-bottom: 8px; }
+.detail-text { font-size: 12px; color: var(--text2); line-height: 1.7; }
+.detail-kv { display: flex; flex-direction: column; gap: 6px; }
+.detail-row { display: flex; justify-content: space-between; font-size: 12px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+.detail-row-k { color: var(--text3); font-family: var(--mono); }
+.detail-row-v { color: var(--text); font-weight: 500; }
+.sources-list { display: flex; flex-direction: column; gap: 6px; }
+.source-item { padding: 8px 10px; background: var(--surface2); border-radius: 5px; border: 1px solid var(--border); }
+.source-name { font-size: 11px; font-weight: 500; color: var(--accent); }
+.source-date { font-size: 10px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+.source-snippet { font-size: 11px; color: var(--text2); margin-top: 4px; line-height: 1.5; }
+.draft-btn { width: 100%; padding: 10px; background: var(--accent); border: none; border-radius: 6px; color: white; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--sans); transition: background 0.15s; margin-top: auto; }
+.draft-btn:hover { background: #2563eb; }
+
+/* Response area */
+.response-panel { border-top: 1px solid var(--border); padding: 16px; background: var(--surface); flex-shrink: 0; display: none; }
+.response-panel.active { display: block; }
+.response-header { font-size: 11px; font-family: var(--mono); color: var(--text3); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.response-content { font-size: 12px; line-height: 1.7; color: var(--text2); background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+.typing-cursor { display: inline-block; width: 2px; height: 13px; background: var(--accent); margin-left: 2px; animation: blink 1s infinite; vertical-align: middle; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo-area">
+      <div class="logo">
+        <img src="/Aptiv_Logo.png" alt="Aptiv" />
+        <div class="logo-pip"></div>
+      </div>
+      <div class="sub-logo"><span class="sub-logo-pip"></span>BD Intelligence Copilot</div>
+    </div>
+    <div class="nav">
+      <div class="nav-section-label">Agents</div>
+      <button class="nav-item active" onclick="switchTab('scan')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M3.5 12.5l1.4-1.4M11.1 4.9l1.4-1.4" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+        Opportunity Scan
+        <span class="nav-badge new" id="new-count" style="display:none">0</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('rfp')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2" y="1" width="10" height="13" rx="1.5"/><path d="M5 5h5M5 8h5M5 11h3"/></svg>
+        RFP Analyser
+      </button>
+      <button class="nav-item" onclick="switchTab('draft')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2 12.5L3.5 14l9-9-1.5-1.5-9 9z"/><path d="M11 3l2 2"/></svg>
+        Proposal Drafter
+      </button>
+      <div class="nav-section-label" style="margin-top:12px">Pipeline</div>
+      <button class="nav-item" onclick="switchTab('pipeline')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="3" width="4" height="10" rx="1"/><rect x="6" y="5" width="4" height="8" rx="1"/><rect x="11" y="7" width="4" height="6" rx="1"/></svg>
+        Track Bids
+      </button>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Opportunity Intelligence</div>
+      </div>
+      <div class="topbar-status" id="last-scan">No scan run yet</div>
+      <div class="topbar-actions">
+        <button class="btn" onclick="toggleConfig()">⚙ Filters</button>
+        <button class="btn btn-scan" id="scan-btn" onclick="runScan()">▶ Run Scan</button>
+      </div>
+    </div>
+
+    <div style="display:flex; flex:1; overflow:hidden;">
+      <!-- Results column -->
+      <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+
+        <!-- Config panel -->
+        <div class="config-panel" id="config-panel">
+          <div class="config-header" onclick="toggleConfig()">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke-width="1.5"/></svg>
+            <span class="config-header-title">Scan Configuration</span>
+            <span class="config-toggle" id="config-toggle-icon">▼ expand</span>
+          </div>
+          <div class="config-body" id="config-body">
+            <div class="config-group">
+              <div class="config-label">Venue Types</div>
+              <div class="config-tags">
+                <span class="tag active" onclick="toggleTag(this)">Stadium</span>
+                <span class="tag active" onclick="toggleTag(this)">Arena</span>
+                <span class="tag active" onclick="toggleTag(this)">Airport</span>
+                <span class="tag active" onclick="toggleTag(this)">Convention Ctr</span>
+                <span class="tag" onclick="toggleTag(this)">Hospital</span>
+                <span class="tag" onclick="toggleTag(this)">University</span>
+                <span class="tag" onclick="toggleTag(this)">Transit Hub</span>
+                <span class="tag" onclick="toggleTag(this)">Hotel</span>
+              </div>
+            </div>
+            <div class="config-group">
+              <div class="config-label">Network Technology</div>
+              <div class="config-tags">
+                <span class="tag active green" onclick="toggleTag(this)">DAS</span>
+                <span class="tag active green" onclick="toggleTag(this)">Wi-Fi</span>
+                <span class="tag active green" onclick="toggleTag(this)">5G / CBRS</span>
+                <span class="tag" onclick="toggleTag(this)">Neutral Host</span>
+                <span class="tag" onclick="toggleTag(this)">In-Building</span>
+              </div>
+            </div>
+            <div class="config-group">
+              <div class="config-label">Project Value</div>
+              <div class="config-tags">
+                <span class="tag" onclick="toggleTag(this)">$10M+</span>
+                <span class="tag active amber" onclick="toggleTag(this)">$50M+</span>
+                <span class="tag active amber" onclick="toggleTag(this)">$100M+</span>
+                <span class="tag active amber" onclick="toggleTag(this)">$500M+</span>
+              </div>
+            </div>
+            <div class="config-group">
+              <div class="config-label">Sources</div>
+              <div class="config-tags">
+                <span class="tag active" onclick="toggleTag(this)">News</span>
+                <span class="tag active" onclick="toggleTag(this)">Trade Press</span>
+                <span class="tag active" onclick="toggleTag(this)">Gov Procurement</span>
+                <span class="tag" onclick="toggleTag(this)">LinkedIn</span>
+                <span class="tag" onclick="toggleTag(this)">ENR</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div class="content" id="results-area">
+          <div class="empty-state" id="empty-state">
+            <div class="empty-icon">◎</div>
+            <div class="empty-title">No scan results yet</div>
+            <div class="empty-sub">Configure your filters above, then hit Run Scan. The agent will search news, trade press, and procurement portals for large US construction projects needing DAS or Wi-Fi networks.</div>
+            <button class="btn btn-scan" style="margin-top:8px" onclick="runScan()">▶ Run First Scan</button>
+          </div>
+          <div class="scan-state" id="scan-state">
+            <div class="scan-ring"></div>
+            <div class="scan-log" id="scan-log"></div>
+          </div>
+          <div id="results-list" style="display:none; display:flex; flex-direction:column; gap:10px;">
+            <div class="results-header">
+              <span class="results-count" id="results-count"></span>
+              <div class="filter-row">
+                <button class="filter-pill active" onclick="filterCards('all', this)">All</button>
+                <button class="filter-pill" onclick="filterCards('hot', this)">🔥 Hot</button>
+                <button class="filter-pill" onclick="filterCards('warm', this)">Warm</button>
+                <button class="filter-pill" onclick="filterCards('watch', this)">Watch</button>
+              </div>
+            </div>
+            <div id="cards-container"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Detail panel -->
+      <div class="detail-panel hidden" id="detail-panel">
+        <div class="detail-header">
+          <span class="detail-title" id="detail-title">Project Details</span>
+          <button class="detail-close" onclick="closeDetail()">✕</button>
+        </div>
+        <div class="detail-body" id="detail-body"></div>
+      </div>
+    </div>
+
+    <!-- Response panel -->
+    <div class="response-panel" id="response-panel">
+      <div class="response-header">
+        <div class="logo-pip" style="width:5px;height:5px;"></div>
+        AI ANALYSIS
+      </div>
+      <div class="response-content" id="response-content"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
+
+let selectedCard = null;
+let allOpportunities = [];
+let currentFilter = 'all';
+
+// Sample opportunities (pre-seeded for demo)
+const SEED_OPPS = [
+  {
+    id: 1, priority: 'hot', type: 'Stadium', icon: '🏟',
+    title: 'Las Vegas A\'s Ballpark — Howard Hughes District',
+    location: 'Las Vegas, NV', value: '$1.5B', stage: 'Design Phase',
+    announced: '2 days ago', rfpEta: 'Q3 2025',
+    summary: 'New 30,000-seat MLB ballpark breaking ground Q1 2025. Technology RFPs expected mid-2025 covering DAS, Wi-Fi 7, and broadcast infrastructure. Project lead is Turner Construction.',
+    sources: [
+      { name: 'Las Vegas Review-Journal', date: 'Mar 21 2025', snippet: 'Construction timeline confirmed for new A\'s ballpark in downtown Las Vegas.' },
+      { name: 'ENR Southwest', date: 'Mar 19 2025', snippet: 'Turner Construction named as GC. Technology subcontractor RFPs anticipated Q3.' }
+    ],
+    bdFit: 'High — similar to Allegiant Stadium DAS work. Recommend loop in West Region BD.',
+  },
+  {
+    id: 2, priority: 'hot', type: 'Arena', icon: '🏒',
+    title: 'New Nashville NHL Arena — Tennessee Titans Site',
+    location: 'Nashville, TN', value: '$2.1B', stage: 'Approved',
+    announced: '5 days ago', rfpEta: 'Q4 2025',
+    summary: 'State-of-the-art arena approved to host expansion NHL franchise. 18,500-seat capacity. Technology package expected to include neutral-host DAS and Wi-Fi 7 throughout. Metro Sports Authority managing procurement.',
+    sources: [
+      { name: 'Nashville Post', date: 'Mar 18 2025', snippet: 'Nashville Arena Authority approves full project budget.' },
+      { name: 'Sports Business Journal', date: 'Mar 17 2025', snippet: 'NHL expansion arena technology RFP expected late 2025.' }
+    ],
+    bdFit: 'High — neutral host DAS is a strong fit. SE Region BD should lead.',
+  },
+  {
+    id: 3, priority: 'warm', type: 'Airport', icon: '✈️',
+    title: 'Kansas City International — Terminal Expansion',
+    location: 'Kansas City, MO', value: '$580M', stage: 'Planning',
+    announced: '1 week ago', rfpEta: 'Q2 2025',
+    summary: 'Major terminal expansion at KCI adding 20 gates. Wi-Fi and cellular infrastructure RFPs likely to be bundled with AV/IT package. Airport authority recently issued pre-qualification notice.',
+    sources: [
+      { name: 'Aviation Week', date: 'Mar 15 2025', snippet: 'KCI terminal expansion enters detailed planning phase.' }
+    ],
+    bdFit: 'Medium — airport experience is relevant. Check past ORD and DFW bid history.',
+  },
+  {
+    id: 4, priority: 'warm', type: 'Convention Ctr', icon: '🏛',
+    title: 'Dallas Kay Bailey Hutchison Expansion',
+    location: 'Dallas, TX', value: '$800M', stage: 'Procurement',
+    announced: '2 weeks ago', rfpEta: 'Active — due Apr 30',
+    summary: 'Major expansion of the existing convention center adding 2.5M sq ft. Technology RFP is live — covers in-building wireless, Wi-Fi, and AV. Deadline April 30. Dallas Convention & Visitors Bureau managing.',
+    sources: [
+      { name: 'Dallas Morning News', date: 'Mar 10 2025', snippet: 'Convention center expansion procurement now underway.' },
+      { name: 'Biz Journal Dallas', date: 'Mar 8 2025', snippet: 'Technology RFP live on city procurement portal.' }
+    ],
+    bdFit: 'Very High — RFP is LIVE. Immediate action needed. Tag SW Region BD.',
+  },
+  {
+    id: 5, priority: 'watch', type: 'Stadium', icon: '🏈',
+    title: 'Cleveland Browns New Stadium — Lakefront Site',
+    location: 'Cleveland, OH', value: '$2.4B', stage: 'Concept',
+    announced: '3 weeks ago', rfpEta: '2026+',
+    summary: 'Browns ownership exploring new domed stadium on Lake Erie waterfront. Early concept stage — no groundbreaking yet. Worth monitoring as project advances through approvals.',
+    sources: [
+      { name: 'Cleveland Plain Dealer', date: 'Mar 4 2025', snippet: 'Browns submit lakefront stadium concept to city council.' }
+    ],
+    bdFit: 'Low now, high potential. Set alert for funding approval milestone.',
+  },
+];
+
+function toggleConfig() {
+  const body = document.getElementById('config-body');
+  const icon = document.getElementById('config-toggle-icon');
+  body.classList.toggle('open');
+  icon.textContent = body.classList.contains('open') ? '▲ collapse' : '▼ expand';
+}
+
+function toggleTag(el) {
+  el.classList.toggle('active');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  if (tab !== 'scan') {
+    alert(`The ${tab === 'rfp' ? 'RFP Analyser' : tab === 'draft' ? 'Proposal Drafter' : 'Bid Tracker'} module is shown here. This demo focuses on the Opportunity Scan agent.`);
+  }
+}
+
+const scanLogs = [
+  '→ Connecting to news sources...',
+  '→ Searching ENR, Construction Dive, Sports Business Journal...',
+  '→ Querying government procurement portals...',
+  '→ Scanning SAM.gov and state bid boards...',
+  '→ Filtering by venue type and project value...',
+  '→ Checking for DAS / Wi-Fi requirements...',
+  '→ Running relevance scoring...',
+  '→ Generating opportunity summaries...',
+  '✓ Scan complete — analysing results...',
+];
+
+async function runScan() {
+  const btn = document.getElementById('scan-btn');
+  btn.disabled = true;
+  btn.textContent = '◌ Scanning...';
+
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('results-list').style.display = 'none';
+  const scanState = document.getElementById('scan-state');
+  scanState.classList.add('active');
+  const logEl = document.getElementById('scan-log');
+  logEl.innerHTML = '';
+
+  for (let i = 0; i < scanLogs.length; i++) {
+    await delay(600);
+    const span = document.createElement('span');
+    span.textContent = scanLogs[i];
+    logEl.appendChild(span);
+  }
+
+  await delay(800);
+  scanState.classList.remove('active');
+
+  allOpportunities = SEED_OPPS;
+  renderCards(allOpportunities);
+
+  document.getElementById('last-scan').textContent = 'Last scan: just now';
+  document.getElementById('new-count').style.display = 'inline';
+  document.getElementById('new-count').textContent = '5';
+  btn.disabled = false;
+  btn.textContent = '↺ Re-scan';
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function renderCards(opps) {
+  const container = document.getElementById('cards-container');
+  const listEl = document.getElementById('results-list');
+  const countEl = document.getElementById('results-count');
+
+  container.innerHTML = '';
+  const filtered = currentFilter === 'all' ? opps : opps.filter(o => o.priority === currentFilter);
+  countEl.textContent = `${filtered.length} opportunit${filtered.length !== 1 ? 'ies' : 'y'} found`;
+  listEl.style.display = 'flex';
+
+  filtered.forEach(opp => {
+    const card = document.createElement('div');
+    card.className = `opp-card ${opp.priority}`;
+    card.id = `card-${opp.id}`;
+    card.innerHTML = `
+      <div class="opp-top">
+        <div class="opp-icon">${opp.icon}</div>
+        <div style="flex:1; min-width:0;">
+          <div class="opp-title">${opp.title}</div>
+          <div class="opp-location">📍 ${opp.location}</div>
+        </div>
+        <div class="opp-badges">
+          <span class="badge badge-${opp.priority}">${opp.priority.toUpperCase()}</span>
+          <span class="badge badge-type">${opp.type}</span>
+        </div>
+      </div>
+      <div class="opp-meta">
+        <span class="opp-meta-item">💰 ${opp.value}</span>
+        <span class="opp-meta-item">📋 ${opp.stage}</span>
+        <span class="opp-meta-item">🕐 RFP: ${opp.rfpEta}</span>
+        <span class="opp-meta-item">📰 ${opp.announced}</span>
+      </div>
+      <div class="opp-summary">${opp.summary}</div>
+      <div class="opp-actions">
+        <button class="opp-btn opp-btn-primary" onclick="showDetail(${opp.id}); event.stopPropagation();">View Details</button>
+        <button class="opp-btn" onclick="analyseOpp(${opp.id}); event.stopPropagation();">✦ AI Analysis</button>
+        <button class="opp-btn" onclick="event.stopPropagation(); alert('Opportunity added to pipeline tracker.')">+ Add to Pipeline</button>
+      </div>
+    `;
+    card.onclick = () => showDetail(opp.id);
+    container.appendChild(card);
+  });
+}
+
+function filterCards(priority, el) {
+  currentFilter = priority;
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderCards(allOpportunities);
+}
+
+function showDetail(id) {
+  const opp = allOpportunities.find(o => o.id === id);
+  if (!opp) return;
+
+  document.querySelectorAll('.opp-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById(`card-${id}`).classList.add('selected');
+
+  const panel = document.getElementById('detail-panel');
+  panel.classList.remove('hidden');
+  document.getElementById('detail-title').textContent = opp.title;
+
+  const body = document.getElementById('detail-body');
+  body.innerHTML = `
+    <div class="detail-section">
+      <div class="detail-section-label">Project Info</div>
+      <div class="detail-kv">
+        <div class="detail-row"><span class="detail-row-k">Value</span><span class="detail-row-v">${opp.value}</span></div>
+        <div class="detail-row"><span class="detail-row-k">Stage</span><span class="detail-row-v">${opp.stage}</span></div>
+        <div class="detail-row"><span class="detail-row-k">RFP ETA</span><span class="detail-row-v">${opp.rfpEta}</span></div>
+        <div class="detail-row"><span class="detail-row-k">Location</span><span class="detail-row-v">${opp.location}</span></div>
+        <div class="detail-row"><span class="detail-row-k">Type</span><span class="detail-row-v">${opp.type}</span></div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-label">BD Fit Assessment</div>
+      <div class="detail-text">${opp.bdFit}</div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-label">Sources (${opp.sources.length})</div>
+      <div class="sources-list">${opp.sources.map(s => `
+        <div class="source-item">
+          <div class="source-name">${s.name}</div>
+          <div class="source-date">${s.date}</div>
+          <div class="source-snippet">${s.snippet}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <button class="draft-btn" onclick="analyseOpp(${opp.id})">✦ Generate Full AI Briefing</button>
+  `;
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.add('hidden');
+  document.querySelectorAll('.opp-card').forEach(c => c.classList.remove('selected'));
+}
+
+async function analyseOpp(id) {
+  const opp = allOpportunities.find(o => o.id === id);
+  if (!opp) return;
+
+  const panel = document.getElementById('response-panel');
+  const content = document.getElementById('response-content');
+  panel.classList.add('active');
+  content.textContent = '';
+
+  const prompt = `You are a BD intelligence analyst for a company that provides DAS (Distributed Antenna Systems) and Wi-Fi network solutions for large venues.
+
+Analyse this opportunity and provide a concise briefing:
+
+Project: ${opp.title}
+Location: ${opp.location}
+Value: ${opp.value}
+Stage: ${opp.stage}
+RFP ETA: ${opp.rfpEta}
+Summary: ${opp.summary}
+
+Provide:
+1. Why this is relevant (2-3 sentences)
+2. Key DAS/Wi-Fi requirements likely needed
+3. Recommended immediate actions for the BD team
+4. Who to engage first (owner, GC, consultants)
+5. Key risks or watch-outs
+
+Keep it punchy and actionable — this is for a busy marketing/BD team.`;
+
+  try {
+    const res = await fetch(ANTHROPIC_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        stream: true,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') break;
+          try {
+            const json = JSON.parse(data);
+            if (json.type === 'content_block_delta' && json.delta?.text) {
+              content.textContent += json.delta.text;
+              content.scrollTop = content.scrollHeight;
+            }
+          } catch {}
+        }
+      }
+    }
+  } catch (err) {
+    content.textContent = `Error connecting to AI: ${err.message}\n\nThis demo requires an Anthropic API connection. In production, the agent would generate a full BD briefing here.`;
+  }
+}
+</script>
+</body>
+</html>
